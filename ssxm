@@ -82,7 +82,7 @@ ss_region_freeze() { # for wave; with the help of https://github.com/naelstrof/m
 
                         local filename="$foldersub/${datetime}${wclassname}.${ext}"
 
-                        maim --capturebackground --geometry "${MONW}x${MONH}+${MONX}+${MONY}" --quality 1 "/tmp/sel_screenshot.png"
+                        maim --hidecursor --capturebackground --geometry "${MONW}x${MONH}+${MONX}+${MONY}" --quality 1 "/tmp/sel_screenshot.png"
                         nsxiv -f --anti-alias=no -b /tmp/sel_screenshot.png &
                         local nsxiv_pid=$!
 
