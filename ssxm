@@ -22,9 +22,9 @@ ss_active_window() {
     local wclassname="$(xdotool getactivewindow getwindowclassname | sed 's/[^a-zA-Z0-9_. -]//g')"
 
     if [ -z "$wclassname" ]; then # make sure a window is selected!
-		notify-send "ssxm: Error!" "You must have an X window selected!"
-		exit 1
-	fi
+        notify-send "ssxm: Error!" "You must have an X window selected!"
+        exit 1
+    fi
 
     local filename="$foldersub/${datetime}___$wclassname.${ext}"
     
@@ -33,8 +33,8 @@ ss_active_window() {
     else
         maim --capturebackground --window $(xdotool getactivewindow) --quality 5 "$filename"
     fi
-	
-	if ! delete_if_empty "$filename"; then
+    
+    if ! delete_if_empty "$filename"; then
         copy_to_clipboard "$filename" && \
         send_notification "$filename"
     fi
@@ -51,8 +51,8 @@ ss_workspace() {
     else
         maim --capturebackground --quality 3 "$filename"
     fi
-	
-	if ! delete_if_empty "$filename"; then
+    
+    if ! delete_if_empty "$filename"; then
         copy_to_clipboard "$filename" && \
         send_notification "$filename"
     fi
@@ -145,10 +145,10 @@ ss_region() {
     if [ "$ext" == "ff.bz2" ]; then
         maim --hidecursor --geometry "$slop" --capturebackground --format png --quality 1 | png2ff | bzip2 --best > "$filename"
     else
-	    maim --hidecursor --geometry "$slop" --capturebackground --quality 8 "$filename"
+        maim --hidecursor --geometry "$slop" --capturebackground --quality 8 "$filename"
     fi
 
-	if ! delete_if_empty "$filename"; then
+    if ! delete_if_empty "$filename"; then
         copy_to_clipboard "$filename" && \
         send_notification "$filename"
     fi
@@ -201,14 +201,14 @@ send_notification() {
 }
 
 delete_if_empty() {
-	# sometimes maim will generate empty files especially if you abort taking
-	# screenshots with slurp (region capture)
+    # sometimes maim will generate empty files especially if you abort taking
+    # screenshots with slurp (region capture)
 
-	if [ "$(file -b "$1")" = "empty" ]; then
-		rm "$1"
-		notify-send "ssxm: Screenshot Aborted!" "The screenshot was aborted."
+    if [ "$(file -b "$1")" = "empty" ]; then
+        rm "$1"
+        notify-send "ssxm: Screenshot Aborted!" "The screenshot was aborted."
         return 0
-	fi
+    fi
     return 1 # for ||
 }
 
@@ -218,7 +218,7 @@ copy_to_clipboard() {
     # such as discord and telegram have a spasm and freeze my entire system the moment
     # I would put my cursor over them with a copied file on my clipboard.
 
-	cb clear # clear it first because some times it bugs out
+    cb clear # clear it first because some times it bugs out
     [ -f "$1" ] && cb copy "$1"
 }
 
