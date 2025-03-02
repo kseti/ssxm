@@ -1,0 +1,264 @@
+#!/usr/bin/env bash
+
+# ssxm (screenshot-xorg-maim), takes screenshots of your desktop using maim
+# active monitor, region, region (with monitor freezing), entire workspace,
+# and current active window, saves it to disk in the png format and copies
+# the file to the clipboard using "Clipboard" more about Clipboard on the
+# "copy_to_clipboard()" function.
+
+# configuration
+folder=${SSXM_FOLDER:-~/Screenshots} # do not quote or it will not expand the ~
+sub=${SSXM_SUB:-$(date +%Y)-$(date +%m)}
+ext=${SSXM_EXT:-"png"} # png, jpg, bmp, webp, ff.bz2
+
+# useful variables
+datetime="$(date +%Y-%m-%d_%H-%M-%S.%3N)" # for files
+foldersub="$folder/$sub" # sub folder below $folder
+
+# creates the sub folder if not exist
+[ -d "$foldersub" ] || mkdir -p "$foldersub"
+
+ss_active_window() {
+    local wclassname="$(xdotool getactivewindow getwindowclassname | sed 's/[^a-zA-Z0-9_. -]//g')"
+
+    if [ -z "$wclassname" ]; then # make sure a window is selected!
+		notify-send "ssxm: Error!" "You must have an X window selected!"
+		exit 1
+	fi
+
+    local filename="$foldersub/${datetime}___$wclassname.${ext}"
+    
+    if [ "$ext" == "ff.bz2" ]; then
+        maim --capturebackground --window $(xdotool getactivewindow) --format png --quality 1 | png2ff | bzip2 --best > "$filename"
+    else
+        maim --capturebackground --window $(xdotool getactivewindow) --quality 5 "$filename"
+    fi
+	
+	if ! delete_if_empty "$filename"; then
+        copy_to_clipboard "$filename" && \
+        send_notification "$filename"
+    fi
+}
+
+ss_workspace() {
+    local wclassname="$(xdotool getactivewindow getwindowclassname | sed 's/[^a-zA-Z0-9_. -]//g')"
+    [ -z "$wclassname" ] && wclassname="" || wclassname="___${wclassname}" # if a window is not selected set the wclassname to "" else ___${wclassname}
+
+    local filename="$foldersub/${datetime}${wclassname}.${ext}"
+
+    if [ "$ext" == "ff.bz2" ]; then
+        maim --capturebackground --format png --quality 1 | png2ff | bzip2 --best > "$filename"
+    else
+        maim --capturebackground --quality 3 "$filename"
+    fi
+	
+	if ! delete_if_empty "$filename"; then
+        copy_to_clipboard "$filename" && \
+        send_notification "$filename"
+    fi
+}
+
+ss_region_freeze() { # for wave; with the help of https://github.com/naelstrof/maim/issues/193#issuecomment-1658945688
+    MONITORS=$(xrandr | grep -o '[0-9]*x[0-9]*[+-][0-9]*[+-][0-9]*')
+    # Get the location of the mouse
+    XMOUSE=$(xdotool getmouselocation | awk -F "[: ]" '{print $2}')
+    YMOUSE=$(xdotool getmouselocation | awk -F "[: ]" '{print $4}')
+
+    for mon in ${MONITORS}; do
+        # Parse the geometry of the monitor
+        MONW=$(echo ${mon} | awk -F "[x+]" '{print $1}')
+        MONH=$(echo ${mon} | awk -F "[x+]" '{print $2}')
+        MONX=$(echo ${mon} | awk -F "[x+]" '{print $3}')
+        MONY=$(echo ${mon} | awk -F "[x+]" '{print $4}')
+        # Use a simple collision check
+        if (( ${XMOUSE} >= ${MONX} )); then
+            if (( ${XMOUSE} <= ${MONX}+${MONW} )); then
+                if (( ${YMOUSE} >= ${MONY} )); then
+                    if (( ${YMOUSE} <= ${MONY}+${MONH} )); then
+                        # We have found our monitor!
+
+                        local wclassname="$(xdotool getwindowclassname "$(xdotool getmouselocation | cut -d: -f 5)" | sed 's/[^a-zA-Z0-9_. -]//g')"
+                        [ -z $wclassname ] && wclassname="" || wclassname="___${wclassname}"
+
+                        local filename="$foldersub/${datetime}${wclassname}.${ext}"
+
+                        maim --capturebackground --geometry "${MONW}x${MONH}+${MONX}+${MONY}" --quality 1 "/tmp/sel_screenshot.png"
+                        nsxiv -f --anti-alias=no -b /tmp/sel_screenshot.png &
+                        nsxiv_pid=$!
+
+                        while true; do # so slop fails some times on kde so i just force it until it spits out a region or the user aborts
+                            if ps -p $nsxiv_pid > /dev/null; then # if user quits nsxiv then abort (probably not happening because of slop itself blocking)
+                                slop=$(slop --highlight --color 0.3,0.4,0.6,0.4 2>&1)  # Capture both stdout and stderr
+                                if [[ "$slop" == *"Selection was cancelled by keystroke or right-click"* ]]; then
+                                    notify-send "ssxm: Screenshot Aborted!" "Selection was cancelled by keystroke or right-click."
+                                    kill "$nsxiv_pid"
+                                    exit 1  # Stop if the cancellation message appears
+                                elif [[ "$slop" =~ ^[0-9]+x[0-9]+\+[0-9]+\+[0-9]+$ ]]; then
+                                    break
+                                fi
+                            else
+                                notify-send "ssxm: Screenshot Aborted!" "nsxiv quit before finishing the selection."
+                                exit 1
+                            fi
+                        done
+                        
+                        if [ "$ext" == "ff.bz2" ]; then
+                            maim --hidecursor --geometry "$slop" --capturebackground --format png --quality 1 | png2ff | bzip2 --best > "$filename"
+                        else
+                            maim --hidecursor --geometry "$slop" --capturebackground --quality 8 "$filename"
+                        fi
+
+                        kill "$nsxiv_pid"
+
+                        rm /tmp/sel_screenshot.png
+
+                        if ! delete_if_empty "$filename"; then
+                            copy_to_clipboard "$filename" && \
+                            send_notification "$filename"
+                        fi
+                    fi
+                fi
+            fi
+        fi
+    done
+}
+
+ss_region() {
+    while true; do # so slop fails some times on kde so i just force it until it spits out a region or the user aborts
+        local slop=$(slop --highlight --color 0.3,0.4,0.6,0.4 2>&1)  # Capture both stdout and stderr
+        if [[ "$slop" == *"Selection was cancelled by keystroke or right-click"* ]]; then
+            notify-send "ssxm: Screenshot Aborted!" "Selection was cancelled by keystroke or right-click."
+            exit 1  # Stop if the cancellation message appears
+        elif [[ "$slop" =~ ^[0-9]+x[0-9]+\+[0-9]+\+[0-9]+$ ]]; then
+            break
+        fi
+    done
+
+    # to get the wclassname here is a bit tricky because slop will not allow the cursor, after taking the region, to set the
+    # window below the cursor as active, so we get the wid with another command.
+    local wclassname="$(xdotool getwindowclassname "$(xdotool getmouselocation | cut -d: -f 5)" | sed 's/[^a-zA-Z0-9_. -]//g')"
+    [ -z $wclassname ] && wclassname="" || wclassname="___${wclassname}"
+
+    local filename="$foldersub/${datetime}${wclassname}.${ext}"
+
+    # --hidecursor here to hide cursor because it's a region capture and it would capture the cursor in the corner
+    if [ "$ext" == "ff.bz2" ]; then
+        maim --hidecursor --geometry "$slop" --capturebackground --format png --quality 1 | png2ff | bzip2 --best > "$filename"
+    else
+	    maim --hidecursor --geometry "$slop" --capturebackground --quality 8 "$filename"
+    fi
+
+	if ! delete_if_empty "$filename"; then
+        copy_to_clipboard "$filename" && \
+        send_notification "$filename"
+    fi
+}
+
+ss_active_monitor() { # https://gist.github.com/naelstrof/f9b74b5221cdc324c0911c89a47b8d97
+    MONITORS=$(xrandr | grep -o '[0-9]*x[0-9]*[+-][0-9]*[+-][0-9]*')
+    # Get the location of the mouse
+    XMOUSE=$(xdotool getmouselocation | awk -F "[: ]" '{print $2}')
+    YMOUSE=$(xdotool getmouselocation | awk -F "[: ]" '{print $4}')
+
+    for mon in ${MONITORS}; do
+        # Parse the geometry of the monitor
+        MONW=$(echo ${mon} | awk -F "[x+]" '{print $1}')
+        MONH=$(echo ${mon} | awk -F "[x+]" '{print $2}')
+        MONX=$(echo ${mon} | awk -F "[x+]" '{print $3}')
+        MONY=$(echo ${mon} | awk -F "[x+]" '{print $4}')
+        # Use a simple collision check
+        if (( ${XMOUSE} >= ${MONX} )); then
+            if (( ${XMOUSE} <= ${MONX}+${MONW} )); then
+                if (( ${YMOUSE} >= ${MONY} )); then
+                    if (( ${YMOUSE} <= ${MONY}+${MONH} )); then
+                        # We have found our monitor!
+
+                        local wclassname="$(xdotool getactivewindow getwindowclassname | sed 's/[^a-zA-Z0-9_. -]//g')"
+                        [ -z $wclassname ] && wclassname="" || wclassname="___${wclassname}"
+
+                        local filename="$foldersub/${datetime}${wclassname}.${ext}"
+
+                        
+                        if [ "$ext" == "ff.bz2" ]; then
+                            maim --capturebackground --geometry "${MONW}x${MONH}+${MONX}+${MONY}" --format png --quality 1 | png2ff | bzip2 --best > "$filename"
+                        else
+                            maim --capturebackground --geometry "${MONW}x${MONH}+${MONX}+${MONY}" --quality 5 "$filename"
+                        fi
+                                            
+                        if ! delete_if_empty "$filename"; then
+                            copy_to_clipboard "$filename" && \
+                            send_notification "$filename"
+                        fi
+                    fi
+                fi
+            fi
+        fi
+    done
+}
+
+send_notification() {
+    notify-send -i "$1" "ssxm: Screenshot Taken!" "$1 taken!"
+}
+
+delete_if_empty() {
+	# sometimes maim will generate empty files especially if you abort taking
+	# screenshots with slurp (region capture)
+
+	if [ "$(file -b "$1")" = "empty" ]; then
+		rm "$1"
+		notify-send "ssxm: Screenshot Aborted!" "The screenshot was aborted."
+        return 0
+	fi
+    return 1 # for ||
+}
+
+copy_to_clipboard() {
+    # https://github.com/Slackadays/Clipboard, the only way I found of copying
+    # files to the clipboard reliably. xsel and xclip were both making applications
+    # such as discord and telegram have a spasm and freeze my entire system the moment
+    # I would put my cursor over them with a copied file on my clipboard.
+
+	cb clear # clear it first because some times it bugs out
+    [ -f "$1" ] && cb copy "$1"
+}
+
+send_help() {
+    echo "ssxm: Usage:
+    - active_window: captures the active window
+    - region: captures a region with \`slop\`
+    - active_monitor: capture the monitor where your cursor is in
+    - workspace: captures your entire workspace (multi head)
+    "
+}
+
+send_error() {
+    echo "ssxm: Error:
+    - this option doesn't exist, use --help for help
+    "
+}
+
+case $1 in
+    "active_window")
+        ss_active_window
+    ;;
+    "region")
+        ss_region
+    ;;
+    "region_freeze")
+        ss_region_freeze
+    ;;
+    "active_monitor")
+        ss_active_monitor
+    ;;
+    "workspace")
+        ss_workspace
+    ;;
+    "--help"|"-h"|"help")
+        send_help
+        exit 0
+    ;;
+    *)
+        send_error
+        exit 1
+    ;;
+esac
