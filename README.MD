@@ -17,7 +17,9 @@ This is my ultra autistic screenshotting utility for Xorg using maim and slop.
 - nsxiv
 - xrandr
 - xdotool
+- a notification daemon
 - [Clipboard](https://github.com/Slackadays/Clipboard)
 - farbfeld (optional suckless image format lol do not use)
 - bzip2 (optional for farbfeld)
-- a notification daemon
+
+
