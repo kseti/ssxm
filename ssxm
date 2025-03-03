@@ -90,7 +90,7 @@ ss_region_freeze() { # for wave; with the help of https://github.com/naelstrof/m
 
                         while true; do # so slop fails some times on kde so i just force it until it spits out a region or the user aborts
                             if ps -p $nsxiv_pid > /dev/null; then # if user quits nsxiv then abort (probably not happening because of slop itself blocking)
-                                local slop=$(slop --highlight --color 0.3,0.4,0.6,0.4 2>&1)  # Capture both stdout and stderr
+                                local slop=$(slop --noopengl --color 0.3,0.4,0.6 2>&1)  # Capture both stdout and stderr
                                 if [[ "$slop" == *"Selection was cancelled by keystroke or right-click"* ]]; then
                                     notify-send "ssxm: Screenshot Aborted!" "Selection was cancelled by keystroke or right-click."
                                     kill "$nsxiv_pid"
@@ -127,7 +127,7 @@ ss_region_freeze() { # for wave; with the help of https://github.com/naelstrof/m
 
 ss_region() {
     while true; do # so slop fails some times on kde so i just force it until it spits out a region or the user aborts
-        local slop=$(slop --highlight --color 0.3,0.4,0.6,0.4 2>&1)  # Capture both stdout and stderr
+        local slop=$(slop --noopengl --color 0.3,0.4,0.6 2>&1)  # Capture both stdout and stderr
         if [[ "$slop" == *"Selection was cancelled by keystroke or right-click"* ]]; then
             notify-send "ssxm: Screenshot Aborted!" "Selection was cancelled by keystroke or right-click."
             exit 1  # Stop if the cancellation message appears
