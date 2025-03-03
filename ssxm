@@ -10,6 +10,8 @@
 folder=${SSXM_FOLDER:-~/Screenshots} # do not quote or it will not expand the ~
 sub=${SSXM_SUB:-$(date +%Y)-$(date +%m)}
 ext=${SSXM_EXT:-"png"} # png, jpg, bmp, webp, ff.bz2
+quality=${SSXM_QUALITY:-5} # recommended for png: 5 window & active mon,
+                                                # 3 workspace, 8 region
 
 # useful variables
 datetime="$(date +%Y-%m-%d_%H-%M-%S.%3N)" # for files
@@ -31,7 +33,7 @@ ss_active_window() {
     if [ "$ext" == "ff.bz2" ]; then
         maim --capturebackground --window $(xdotool getactivewindow) --format png --quality 1 | png2ff | bzip2 --best > "$filename"
     else
-        maim --capturebackground --window $(xdotool getactivewindow) --quality 5 "$filename"
+        maim --capturebackground --window $(xdotool getactivewindow) --quality $quality "$filename"
     fi
     
     if ! delete_if_empty "$filename"; then
@@ -49,7 +51,7 @@ ss_workspace() {
     if [ "$ext" == "ff.bz2" ]; then
         maim --capturebackground --format png --quality 1 | png2ff | bzip2 --best > "$filename"
     else
-        maim --capturebackground --quality 3 "$filename"
+        maim --capturebackground --quality $quality "$filename"
     fi
     
     if ! delete_if_empty "$filename"; then
@@ -105,7 +107,7 @@ ss_region_freeze() { # for wave; with the help of https://github.com/naelstrof/m
                         if [ "$ext" == "ff.bz2" ]; then
                             maim --hidecursor --geometry "$slop" --capturebackground --format png --quality 1 | png2ff | bzip2 --best > "$filename"
                         else
-                            maim --hidecursor --geometry "$slop" --capturebackground --quality 8 "$filename"
+                            maim --hidecursor --geometry "$slop" --capturebackground --quality $quality "$filename"
                         fi
 
                         kill "$nsxiv_pid"
@@ -145,7 +147,7 @@ ss_region() {
     if [ "$ext" == "ff.bz2" ]; then
         maim --hidecursor --geometry "$slop" --capturebackground --format png --quality 1 | png2ff | bzip2 --best > "$filename"
     else
-        maim --hidecursor --geometry "$slop" --capturebackground --quality 8 "$filename"
+        maim --hidecursor --geometry "$slop" --capturebackground --quality $quality "$filename"
     fi
 
     if ! delete_if_empty "$filename"; then
@@ -182,7 +184,7 @@ ss_active_monitor() { # https://gist.github.com/naelstrof/f9b74b5221cdc324c0911c
                         if [ "$ext" == "ff.bz2" ]; then
                             maim --capturebackground --geometry "${MONW}x${MONH}+${MONX}+${MONY}" --format png --quality 1 | png2ff | bzip2 --best > "$filename"
                         else
-                            maim --capturebackground --geometry "${MONW}x${MONH}+${MONX}+${MONY}" --quality 5 "$filename"
+                            maim --capturebackground --geometry "${MONW}x${MONH}+${MONX}+${MONY}" --quality $quality "$filename"
                         fi
                                             
                         if ! delete_if_empty "$filename"; then
@@ -202,14 +204,14 @@ send_notification() {
 
 delete_if_empty() {
     # sometimes maim will generate empty files especially if you abort taking
-    # screenshots with slurp (region capture)
+    # screenshots with slop (region capture)
 
     if [ "$(file -b "$1")" = "empty" ]; then
         rm "$1"
-        notify-send "ssxm: Screenshot Aborted!" "The screenshot was aborted."
+        notify-send "ssxm: Screenshot Deleted!" "The screenshot was deleted because the file was empty."
         return 0
     fi
-    return 1 # for ||
+    return 1 # for if ! delete_if_empty "$filename"; then ...
 }
 
 copy_to_clipboard() {
@@ -226,6 +228,7 @@ send_help() {
     echo "ssxm: Usage:
     - active_window: captures the active window
     - region: captures a region with \`slop\`
+    - region_freeze: same thing but the active screen freezes
     - active_monitor: capture the monitor where your cursor is in
     - workspace: captures your entire workspace (multi head)
     "
