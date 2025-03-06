@@ -1,6 +1,6 @@
 # screenshot-xorg-maim
 
-This is my ultra autistic screenshotting utility for Xorg using maim and slop.
+This is my screenshotting utility for Xorg using maim and slop.
 
 ## Features:
 
@@ -19,5 +19,3 @@ This is my ultra autistic screenshotting utility for Xorg using maim and slop.
 - xdotool
 - a notification daemon
 - [Clipboard](https://github.com/Slackadays/Clipboard)
-- farbfeld (optional suckless image format lol do not use)
-- bzip2 (optional for farbfeld)

@@ -9,7 +9,7 @@
 # configuration
 folder=${SSXM_FOLDER:-~/Screenshots} # do not quote or it will not expand the ~
 sub=${SSXM_SUB:-$(date +%Y)-$(date +%m)}
-ext=${SSXM_EXT:-"png"} # png, jpg, bmp, webp, ff.bz2
+ext=${SSXM_EXT:-"png"} # png, jpg, bmp, webp
 quality=${SSXM_QUALITY:-5} # recommended for png: 5 window & active mon,
                                                 # 3 workspace, 8 region
 
@@ -30,11 +30,7 @@ ss_active_window() {
 
     local filename="$foldersub/${datetime}___$wclassname.${ext}"
     
-    if [ "$ext" == "ff.bz2" ]; then
-        maim --capturebackground --window $(xdotool getactivewindow) --format png --quality 1 | png2ff | bzip2 --best > "$filename"
-    else
-        maim --capturebackground --window $(xdotool getactivewindow) --quality $quality "$filename"
-    fi
+    maim --capturebackground --window $(xdotool getactivewindow) --quality $quality "$filename"
     
     if ! delete_if_empty "$filename"; then
         send_notification "$filename" && \
@@ -48,11 +44,7 @@ ss_workspace() {
 
     local filename="$foldersub/${datetime}${wclassname}.${ext}"
 
-    if [ "$ext" == "ff.bz2" ]; then
-        maim --capturebackground --format png --quality 1 | png2ff | bzip2 --best > "$filename"
-    else
-        maim --capturebackground --quality $quality "$filename"
-    fi
+    maim --capturebackground --quality $quality "$filename"
     
     if ! delete_if_empty "$filename"; then
         send_notification "$filename" && \
@@ -104,11 +96,7 @@ ss_region_freeze() { # for wave; with the help of https://github.com/naelstrof/m
                             fi
                         done
                         
-                        if [ "$ext" == "ff.bz2" ]; then
-                            maim --hidecursor --geometry "$slop" --capturebackground --format png --quality 1 | png2ff | bzip2 --best > "$filename"
-                        else
-                            maim --hidecursor --geometry "$slop" --capturebackground --quality $quality "$filename"
-                        fi
+                        maim --hidecursor --geometry "$slop" --capturebackground --quality $quality "$filename"
 
                         kill "$nsxiv_pid"
 
@@ -144,11 +132,7 @@ ss_region() {
     local filename="$foldersub/${datetime}${wclassname}.${ext}"
 
     # --hidecursor here to hide cursor because it's a region capture and it would capture the cursor in the corner
-    if [ "$ext" == "ff.bz2" ]; then
-        maim --hidecursor --geometry "$slop" --capturebackground --format png --quality 1 | png2ff | bzip2 --best > "$filename"
-    else
-        maim --hidecursor --geometry "$slop" --capturebackground --quality $quality "$filename"
-    fi
+    maim --hidecursor --geometry "$slop" --capturebackground --quality $quality "$filename"
 
     if ! delete_if_empty "$filename"; then
         send_notification "$filename" && \
@@ -180,12 +164,7 @@ ss_active_monitor() { # https://gist.github.com/naelstrof/f9b74b5221cdc324c0911c
 
                         local filename="$foldersub/${datetime}${wclassname}.${ext}"
 
-                        
-                        if [ "$ext" == "ff.bz2" ]; then
-                            maim --capturebackground --geometry "${MONW}x${MONH}+${MONX}+${MONY}" --format png --quality 1 | png2ff | bzip2 --best > "$filename"
-                        else
-                            maim --capturebackground --geometry "${MONW}x${MONH}+${MONX}+${MONY}" --quality $quality "$filename"
-                        fi
+                        maim --capturebackground --geometry "${MONW}x${MONH}+${MONX}+${MONY}" --quality $quality "$filename"
                                             
                         if ! delete_if_empty "$filename"; then
                             send_notification "$filename" && \
