@@ -37,8 +37,8 @@ ss_active_window() {
     fi
     
     if ! delete_if_empty "$filename"; then
-        copy_to_clipboard "$filename" && \
-        send_notification "$filename"
+        send_notification "$filename" && \
+        copy_to_clipboard "$filename" || notify-send "ssxm: Warning" "clipboard failed to copy the screenshot to the clipboard"
     fi
 }
 
@@ -55,8 +55,8 @@ ss_workspace() {
     fi
     
     if ! delete_if_empty "$filename"; then
-        copy_to_clipboard "$filename" && \
-        send_notification "$filename"
+        send_notification "$filename" && \
+        copy_to_clipboard "$filename" || notify-send "ssxm: Warning" "clipboard failed to copy the screenshot to the clipboard"
     fi
 }
 
@@ -115,8 +115,8 @@ ss_region_freeze() { # for wave; with the help of https://github.com/naelstrof/m
                         rm /tmp/sel_screenshot.png
 
                         if ! delete_if_empty "$filename"; then
-                            copy_to_clipboard "$filename" && \
-                            send_notification "$filename"
+                            send_notification "$filename" && \
+                            copy_to_clipboard "$filename" || notify-send "ssxm: Warning" "clipboard failed to copy the screenshot to the clipboard"
                         fi
                     fi
                 fi
@@ -151,8 +151,8 @@ ss_region() {
     fi
 
     if ! delete_if_empty "$filename"; then
-        copy_to_clipboard "$filename" && \
-        send_notification "$filename"
+        send_notification "$filename" && \
+        copy_to_clipboard "$filename" || notify-send "ssxm: Warning" "clipboard failed to copy the screenshot to the clipboard"
     fi
 }
 
@@ -188,8 +188,8 @@ ss_active_monitor() { # https://gist.github.com/naelstrof/f9b74b5221cdc324c0911c
                         fi
                                             
                         if ! delete_if_empty "$filename"; then
-                            copy_to_clipboard "$filename" && \
-                            send_notification "$filename"
+                            send_notification "$filename" && \
+                            copy_to_clipboard "$filename" || notify-send "ssxm: Warning" "clipboard failed to copy the screenshot to the clipboard"
                         fi
                     fi
                 fi
