@@ -199,7 +199,7 @@ copy_to_clipboard() {
     # such as discord and telegram have a spasm and freeze my entire system the moment
     # I would put my cursor over them with a copied file on my clipboard.
 
-    cb clear # clear it first because some times it bugs out
+    rm -rf /run/user/$UID/Clipboard/0/*
     [ -f "$1" ] && cb copy "$1"
 }
 
